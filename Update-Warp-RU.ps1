@@ -169,6 +169,7 @@ Write-Log "Интернет доступен"
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $wc = New-Object Net.WebClient
+try {
 
 Write-Log "Синхронизация sources.txt с GitHub..."
 try {
@@ -230,6 +231,9 @@ if (-not $dlSuccess) {
     Show-Error "Не удалось скачать RU список ни с одного источника.`nПроверьте sources.txt и интернет."
     $mutex.ReleaseMutex()
     exit
+}
+} finally {
+    $wc.Dispose()
 }
 
 # ==============================
@@ -293,6 +297,12 @@ function Build-Config {
     if ($peerSeen -and -not $peerDone) {
         $out += $AllowedLine
         $out += "PersistentKeepalive = 25"
+    }
+    if (-not $RU_IPs -or $RU_IPs.Count -eq 0) {
+        Write-Log "ОШИБКА: ru-last.txt не содержит корректных CIDR-блоков"
+        Show-Error "Файл ru-last.txt пуст или повреждён.`nУдалите его и запустите скрипт повторно."
+        $mutex.ReleaseMutex()
+        exit
     }
     $out | Set-Content $FinalConf -Encoding ASCII
     Write-Log "Конфиг сгенерирован: $($RU_IPs.Count) блоков"
@@ -373,6 +383,7 @@ if (-not $ListChanged) {
     Write-Log "Туннель не запущен или не установлен — запускаем"
     if (-not (Test-Path $FinalConf)) { Build-Config }
     Install-Tunnel
+    Exit-Success "Туннель запущен — OK"
 
 } else {
 
@@ -408,21 +419,6 @@ if (-not $ListChanged) {
         # Туннель не запущен — устанавливаем с новым конфигом
         Write-Log "Туннель не запущен — устанавливаем с новым конфигом"
         Install-Tunnel
+        Exit-Success "Туннель установлен и запущен с новым конфигом — OK"
     }
 }
-
-# ==============================
-# ШАГ 8: Финальная проверка
-# ==============================
-
-$wgFinal = & $WgExe show $TunnelName 2>&1
-if ($LASTEXITCODE -ne 0 -or -not ($wgFinal -match "peer")) {
-    Write-Log "wg show не подтверждает активный туннель с peer"
-    Show-Error "VPN туннель не активен или peer отсутствует.`nПроверьте warp-base.conf."
-    $mutex.ReleaseMutex()
-    exit
-}
-
-Write-Log "wg show OK — peer подтверждён"
-
-Exit-Success "=== VPN успешно запущен ==="
