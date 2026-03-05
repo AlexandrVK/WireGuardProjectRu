@@ -1,0 +1,13 @@
+# Список источников RU IP-блоков для WireGuard WARP-RU
+# Формат: один URL на строку, строки начинающиеся с # — комментарии
+# Файл синхронизируется автоматически с GitHub при каждом запуске скрипта
+# Редактируй этот файл на GitHub — скрипт трогать не нужно
+
+# ipverse/country-ip-blocks — данные из всех 5 RIR, агрегированные, обновляются ежедневно
+https://raw.githubusercontent.com/ipverse/country-ip-blocks/master/country/ru/ipv4-aggregated.txt
+
+# Travisun/Latest-Country-IP-List — обновляется ежедневно на основе APNIC
+https://raw.githubusercontent.com/Travisun/Latest-Country-IP-List/main/RU_ipv4.txt
+
+# ebrasha/cidr-ip-ranges-by-country — резервный источник
+https://raw.githubusercontent.com/ebrasha/cidr-ip-ranges-by-country/main/ru/ru-ipv4-Hackers.Zone.txt
