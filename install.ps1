@@ -209,7 +209,8 @@ $FilesToCopy = @(
     "Update-Warp-RU.ps1",
     "run-update.cmd",
     "test-tunnel-status.ps1",
-    "test-syncconf.ps1"
+    "test-syncconf.ps1",
+    "sources.txt"
 )
 
 $SameDirMsg = $false
@@ -233,13 +234,18 @@ foreach ($file in $FilesToCopy) {
     Write-Log "Скопирован: $file"
 }
 
+# Скрываем папку проекта — файлы конфиденциальные (ключи WARP)
+(Get-Item $BaseDir).Attributes = "Hidden"
+Write-Log "Папка $BaseDir скрыта"
+
 # ==============================
 # Регистрация задачи планировщика
 # ==============================
 
-# Sysnative гарантирует 64-битный PowerShell из любого контекста
-$PS64 = "C:\Windows\Sysnative\WindowsPowerShell\v1.0\powershell.exe"
-if (-not (Test-Path $PS64)) { $PS64 = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" }
+# Планировщик задач всегда 64-битный, поэтому используем System32 напрямую.
+# Sysnative здесь нельзя — он виртуальный алиас только для 32-битных процессов,
+# планировщик его не видит и выдаёт ошибку 0x80070002.
+$PS64 = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
 
 # Регистрируем через XML и schtasks.exe — единственный способ добавить EventTrigger надёжно.
 # Единственный триггер: EventID 10000 (NetworkProfile) — сеть стала доступна, задержка 5 сек.
@@ -308,7 +314,7 @@ Write-Log "=== Установка завершена ==="
 Write-Log "Запускаем Update-Warp-RU.ps1 для первоначальной настройки..."
 $updateScript = "C:\WireGuardProject\Update-Warp-RU.ps1"
 Remove-Item "C:\WireGuardProject\ru-last-run.txt" -Force -ErrorAction SilentlyContinue
-Start-Process "$env:SystemRoot\Sysnative\WindowsPowerShell\v1.0\powershell.exe" `
+Start-Process "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
     -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$updateScript`"" `
     -Wait -WindowStyle Normal
 

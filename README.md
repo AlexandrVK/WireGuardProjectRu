@@ -248,7 +248,7 @@ Get-ScheduledTask -TaskName "WireGuard-WARP-RU"
 | Обновление списка | При каждом старте Windows |
 | Применение изменений | `wg syncconf` (без разрыва соединения) |
 | Запуск | Планировщик задач, триггер AtStartup, от SYSTEM |
-| PowerShell | 64-bit, через `Sysnative` |
+| PowerShell | 64-bit, `System32\WindowsPowerShell\v1.0\powershell.exe` |
 
 ## Лицензия
 
