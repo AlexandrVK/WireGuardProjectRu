@@ -26,7 +26,7 @@ $WgExe        = "$WGDir\wg.exe"
 
 $SourcesFile      = "C:\WireGuardProject\sources.txt"
 # URL будет задан после публикации проекта на GitHub
-$SourcesGitHubURL = "GITHUB_RAW_URL_PLACEHOLDER"
+$SourcesGitHubURL = "https://raw.githubusercontent.com/AlexandrVK/WireGuardProjectRu/main/sources.txt"
 
 # ==============================
 # Инициализация

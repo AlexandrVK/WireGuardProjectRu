@@ -48,6 +48,7 @@ Cloudflare WARP — бесплатный VPN на базе WireGuard. Однак
 install.ps1
 uninstall.ps1
 Update-Warp-RU.ps1
+sources.txt
 ```
 
 ### 2. Запустите установку
@@ -63,15 +64,17 @@ Update-Warp-RU.ps1
 
 ### 3. Первый запуск VPN
 
-После установки запустите вручную для проверки:
+После установки `install.ps1` автоматически запускает основной скрипт, который:
+- Скачивает актуальный `sources.txt` с GitHub
+- Скачивает список RU IP-адресов
+- Устанавливает и активирует туннель warp-ru
 
+В окне WireGuard GUI должен появиться туннель **warp-ru** в статусе Active.
+
+Для повторного принудительного запуска:
 ```
 C:\WireGuardProject\run-update.cmd
 ```
-
-Или через правый клик → **Запуск от имени администратора** на `run-update.cmd`.
-
-В окне WireGuard GUI должен появиться туннель **warp-ru** в статусе Active.
 
 ## Структура файлов после установки
 
@@ -83,7 +86,9 @@ C:\WireGuardProject\
 ├── warp-base.conf          — базовый конфиг WARP с ключами (не удалять!)
 ├── warp-ru.conf            — генерируемый конфиг с RU маршрутами
 ├── warp-peer.conf          — временный файл для wg syncconf
+├── sources.txt             — список URL источников RU IP (синхронизируется с GitHub)
 ├── ru-last.txt             — последний скачанный список RU IP
+├── ru-last-run.txt         — дата последнего успешного запуска
 ├── ru-new.txt              — временный файл при скачивании
 └── warp.log                — лог работы (последние 200 строк)
 ```
@@ -92,11 +97,20 @@ C:\WireGuardProject\
 
 ## Источники списка RU IP-адресов
 
-Скрипт пробует источники по порядку, использует первый успешный:
+Список источников хранится в отдельном файле `sources.txt` в репозитории:
+[AlexandrVK/WireGuardProjectRu/sources.txt](https://github.com/AlexandrVK/WireGuardProjectRu/blob/main/sources.txt)
 
-1. `herrbischoff/country-ip-blocks` (основной)
-2. `ebrasha/cidr-ip-ranges-by-country` (резервный)
-3. `HackingGate/Country-IP-Blocks` (резервный)
+При каждом запуске скрипт **автоматически синхронизирует** локальный `sources.txt` с GitHub.
+Если нужно добавить или заменить источник — достаточно отредактировать файл на GitHub,
+основной скрипт трогать не нужно.
+
+Формат файла: один URL на строку, строки с `#` — комментарии. Скрипт пробует источники
+по порядку, использует первый успешный.
+
+Текущие источники:
+1. `ipverse/country-ip-blocks` — данные из всех 5 RIR, агрегированные, обновляются ежедневно
+2. `Travisun/Latest-Country-IP-List` — обновляется ежедневно
+3. `ebrasha/cidr-ip-ranges-by-country` — резервный источник
 
 ## Как устроен туннель
 

@@ -303,8 +303,17 @@ if (Test-Path $WgcfExe) {
 
 Write-Log "=== Установка завершена ==="
 
+# Запускаем основной скрипт сразу после установки:
+# обновит sources.txt, скачает RU список, установит и запустит туннель
+Write-Log "Запускаем Update-Warp-RU.ps1 для первоначальной настройки..."
+$updateScript = "C:\WireGuardProject\Update-Warp-RU.ps1"
+Remove-Item "C:\WireGuardProject\ru-last-run.txt" -Force -ErrorAction SilentlyContinue
+Start-Process "$env:SystemRoot\Sysnative\WindowsPowerShell\v1.0\powershell.exe" `
+    -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$updateScript`"" `
+    -Wait -WindowStyle Normal
+
 [System.Windows.Forms.MessageBox]::Show(
-    "Установка завершена успешно!`n`nПри следующем старте Windows скрипт автоматически:`n- Скачает актуальный список RU IP-адресов`n- Сгенерирует конфиг туннеля warp-ru`n- Установит и запустит VPN`n`nДля немедленного запуска выполните:`nC:\WireGuardProject\Update-Warp-RU.ps1",
+    "Установка завершена успешно!`n`nТуннель warp-ru установлен и запущен.`nПри каждом старте Windows скрипт автоматически обновляет список RU IP и поддерживает туннель активным.`n`nДля принудительного обновления запустите:`nC:\WireGuardProject\run-update.cmd",
     "Установка завершена",
     [System.Windows.Forms.MessageBoxButtons]::OK,
     [System.Windows.Forms.MessageBoxIcon]::Information
