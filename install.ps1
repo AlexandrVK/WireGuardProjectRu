@@ -6,6 +6,17 @@ $ErrorActionPreference = "Stop"
 
 Add-Type -AssemblyName System.Windows.Forms
 
+$confirm = [System.Windows.Forms.MessageBox]::Show(
+    "Установить WireGuard WARP-RU?`n`nБудет выполнено:`n• Установка WireGuard (если не установлен)`n• Регистрация аккаунта Cloudflare WARP`n• Копирование файлов в C:\WireGuardProject\`n• Создание задачи планировщика задач",
+    "Установка WARP-RU",
+    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+    [System.Windows.Forms.MessageBoxIcon]::Question,
+    [System.Windows.Forms.MessageBoxDefaultButton]::Button2
+)
+if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) {
+    Write-Host "Отменено пользователем"
+    exit
+}
 
 # ==============================
 # Определение папки скрипта
@@ -272,6 +283,8 @@ $TaskXml = @"
   <Settings>
     <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
     <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
     <RestartOnFailure>
       <Interval>PT5M</Interval>
       <Count>3</Count>

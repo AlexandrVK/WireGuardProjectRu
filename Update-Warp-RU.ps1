@@ -82,19 +82,30 @@ if (-not $mutexAcquired) {
     exit
 }
 
-# Проверка: запускался ли скрипт сегодня?
-# Триггер по событию сети может сработать несколько раз за день (переподключения).
-# Если файл ru-last-run.txt содержит сегодняшнюю дату — выходим.
-# run-update.cmd удаляет этот файл перед запуском для принудительного выполнения.
+# Проверка туннеля при каждом запуске — независимо от даты.
+# Если туннель не запущен — запускаем немедленно без обновления баз.
+# Обновление баз из интернета — только раз в сутки.
 $today = (Get-Date).ToString("yyyy-MM-dd")
+
+$_wgQuickCheck = & $WgExe show $TunnelName 2>&1
+$_tunnelUp = ($LASTEXITCODE -eq 0 -and ($_wgQuickCheck -match "interface"))
+
 if (Test-Path $LastRunFile) {
     $lastRun = (Get-Content $LastRunFile -ErrorAction SilentlyContinue).Trim()
     if ($lastRun -eq $today) {
-        Write-Log "Скрипт уже выполнялся сегодня ($today) — выходим"
-        $mutex.ReleaseMutex()
-        exit
+        if ($_tunnelUp) {
+            Write-Log "Скрипт уже выполнялся сегодня, туннель запущен — выходим"
+            $mutex.ReleaseMutex()
+            exit
+        } else {
+            Write-Log "Скрипт уже выполнялся сегодня, но туннель не запущен — восстанавливаем"
+            # Пропускаем обновление баз, переходим сразу к запуску туннеля
+            $SkipUpdate = $true
+        }
     }
 }
+
+if (-not (Get-Variable SkipUpdate -ErrorAction SilentlyContinue)) { $SkipUpdate = $false }
 
 if (-not (Test-Path $WireGuardExe)) {
     Write-Log "WireGuard не установлен: $WireGuardExe"
@@ -142,6 +153,58 @@ if (-not (Test-Path $ConfigsDir)) {
 }
 
 Write-Log "Предусловия OK"
+
+# Если туннель упал, а обновление баз уже было сегодня — сразу запускаем туннель
+if ($SkipUpdate) {
+    Write-Log "Режим восстановления: пропускаем обновление баз, запускаем туннель"
+    $TunnelInstalled = (Test-Path $DpapiFile)
+    $TunnelRunning   = $false
+    if (-not $TunnelInstalled -and -not (Test-Path $FinalConf)) {
+        Write-Log "ОШИБКА: нет ни dpapi ни warp-ru.conf — невозможно восстановить туннель без обновления"
+        Show-Error "Туннель не установлен и конфиг отсутствует.`nЗапустите force.cmd для полного обновления."
+        $mutex.ReleaseMutex()
+        exit
+    }
+    # Используем функцию Install-Tunnel — она определена ниже, поэтому вызываем через ScriptBlock
+    # Вместо этого дублируем минимальную логику запуска
+    $ConfDest = "$ConfigsDir\warp-ru.conf"
+    if (-not $TunnelInstalled) {
+        Write-Log "Копируем конфиг и ждём dpapi..."
+        Copy-Item $FinalConf $ConfDest -Force
+        $encrypted = $false
+        for ($i = 1; $i -le 30; $i++) {
+            Start-Sleep -Seconds 1
+            if ((Test-Path $DpapiFile) -and -not (Test-Path $ConfDest)) {
+                Write-Log "Конфиг зашифрован (через $i сек) — OK"
+                $encrypted = $true; break
+            }
+            Write-Log "Ожидание dpapi... $i/30"
+        }
+        if (-not $encrypted) {
+            Show-Error "WireGuard Manager не обработал конфиг.`nПроверьте что служба WireGuardManager запущена."
+            $mutex.ReleaseMutex(); exit
+        }
+    }
+    Write-Log "Запускаем туннель..."
+    Start-Process $WireGuardExe -ArgumentList "/installtunnelservice `"$FinalConf`"" -WindowStyle Hidden -Wait
+    $restored = $false
+    for ($i = 1; $i -le 30; $i++) {
+        Start-Sleep -Seconds 1
+        $chk = & $WgExe show $TunnelName 2>&1
+        if ($LASTEXITCODE -eq 0 -and ($chk -match "interface")) {
+            Write-Log "Туннель восстановлен (через $i сек) — OK"
+            $restored = $true; break
+        }
+        Write-Log "Ожидание туннеля... $i/30"
+    }
+    if (-not $restored) {
+        Show-Error "Туннель не запустился.`nПроверьте warp.log для деталей."
+        $mutex.ReleaseMutex(); exit
+    }
+    # Дату не обновляем — полный цикл ещё не выполнялся
+    $mutex.ReleaseMutex()
+    exit
+}
 
 # ==============================
 # ШАГ 2: Ожидание интернета
