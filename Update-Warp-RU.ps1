@@ -237,23 +237,38 @@ try {
 Write-Log "Синхронизация sources.txt с GitHub..."
 try {
     $TempSources = "$SourcesFile.tmp"
-    $wc.DownloadFile($SourcesGitHubURL, $TempSources)
-    if ((Test-Path $TempSources) -and (Get-Item $TempSources).Length -gt 10) {
+    # Используем HttpWebRequest с таймаутом 5 сек вместо WebClient
+    # WebClient не имеет таймаута — при недоступности GitHub ждёт десятки секунд
+    $req = [System.Net.HttpWebRequest]::Create($SourcesGitHubURL)
+    $req.Timeout = 5000
+    $req.ReadWriteTimeout = 5000
+    $resp = $req.GetResponse()
+    $stream = $resp.GetResponseStream()
+    $reader = New-Object System.IO.StreamReader($stream)
+    $content = $reader.ReadToEnd()
+    $reader.Close(); $resp.Close()
+    if ($content -and $content.Trim().Length -gt 10) {
+        [System.IO.File]::WriteAllText($TempSources, $content, [System.Text.Encoding]::UTF8)
         Move-Item $TempSources $SourcesFile -Force
         Write-Log "sources.txt обновлён с GitHub"
     } else {
-        Remove-Item $TempSources -Force -ErrorAction SilentlyContinue
         Write-Log "sources.txt с GitHub пустой — используем локальный"
     }
 } catch {
-    Write-Log "Не удалось скачать sources.txt с GitHub: $_ — используем локальный"
+    Write-Log "Не удалось скачать sources.txt с GitHub (таймаут 5 сек): $_ — используем локальный"
 }
 
 if (-not (Test-Path $SourcesFile)) {
-    Write-Log "ОШИБКА: sources.txt не найден"
-    Show-Error "Файл sources.txt не найден:`n$SourcesFile`n`nСкачайте его с GitHub или создайте вручную."
-    $mutex.ReleaseMutex()
-    exit
+    Write-Log "sources.txt не найден — скачиваем принудительно (без таймаута)..."
+    try {
+        $wc.DownloadFile($SourcesGitHubURL, $SourcesFile)
+        Write-Log "sources.txt скачан с GitHub"
+    } catch {
+        Write-Log "ОШИБКА: не удалось скачать sources.txt: $_"
+        Show-Error "Файл sources.txt не найден и не удалось скачать с GitHub.`nПроверьте интернет или создайте файл вручную:`n$SourcesFile"
+        $mutex.ReleaseMutex()
+        exit
+    }
 }
 
 $RU_List_URLs = Get-Content $SourcesFile |
@@ -274,24 +289,49 @@ Write-Log "Источников в sources.txt: $($RU_List_URLs.Count)"
 
 $dlSuccess = $false
 
-foreach ($url in $RU_List_URLs) {
+function Get-RuList {
+    param([string[]]$Urls)
+    foreach ($url in $Urls) {
+        try {
+            Write-Log "Скачивание RU списка: $url"
+            $wc.DownloadFile($url, $TempRU)
+            if ((Test-Path $TempRU) -and (Get-Item $TempRU).Length -gt 1000) {
+                Write-Log "RU список скачан ($([Math]::Round((Get-Item $TempRU).Length/1KB)) КБ)"
+                return $true
+            }
+        } catch {
+            Write-Log "Недоступен: $url — $_"
+        }
+    }
+    return $false
+}
+
+$dlSuccess = Get-RuList $RU_List_URLs
+
+if (-not $dlSuccess) {
+    Write-Log "Все источники недоступны — принудительно обновляем sources.txt с GitHub (без таймаута)..."
     try {
-        Write-Log "Скачивание RU списка: $url"
-        $wc.DownloadFile($url, $TempRU)
-        if ((Test-Path $TempRU) -and (Get-Item $TempRU).Length -gt 1000) {
-            Write-Log "RU список скачан ($([Math]::Round((Get-Item $TempRU).Length/1KB)) КБ)"
-            $dlSuccess = $true
-            break
+        $TempSources = "$SourcesFile.tmp"
+        $wc.DownloadFile($SourcesGitHubURL, $TempSources)
+        if ((Test-Path $TempSources) -and (Get-Item $TempSources).Length -gt 10) {
+            Move-Item $TempSources $SourcesFile -Force
+            Write-Log "sources.txt принудительно обновлён — повторяем попытку скачивания"
+            $RU_List_URLs = Get-Content $SourcesFile |
+                Where-Object { $_.Trim() -ne "" -and -not $_.TrimStart().StartsWith("#") }
+            $dlSuccess = Get-RuList $RU_List_URLs
+        } else {
+            Remove-Item $TempSources -Force -ErrorAction SilentlyContinue
+            Write-Log "sources.txt с GitHub пустой"
         }
     } catch {
-        Write-Log "Недоступен: $url — $_"
+        Write-Log "Не удалось обновить sources.txt с GitHub: $_"
     }
 }
 
 if (-not $dlSuccess) {
-    Write-Log "Все источники RU списка недоступны"
+    Write-Log "Все источники RU списка недоступны даже после обновления sources.txt"
     Remove-Item $TempRU -Force -ErrorAction SilentlyContinue
-    Show-Error "Не удалось скачать RU список ни с одного источника.`nПроверьте sources.txt и интернет."
+    Show-Error "Не удалось скачать RU список ни с одного источника.`nПроверьте интернет."
     $mutex.ReleaseMutex()
     exit
 }
