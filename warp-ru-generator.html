@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0f1e">
+<title>WARP·RU</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0f1e;
+    --panel:    #0d1428;
+    --border:   #1a2744;
+    --accent:   #00d4ff;
+    --accent2:  #0077ff;
+    --green:    #00ff88;
+    --red:      #ff3366;
+    --yellow:   #ffcc00;
+    --text:     #c8d8f0;
+    --dim:      #4a6080;
+    --mono:     'Share Tech Mono', monospace;
+    --sans:     'Exo 2', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orb {
+    position: fixed;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,119,255,.12) 0%, transparent 70%);
+    top: -100px; right: -100px;
+    pointer-events: none;
+    z-index: 0;
+    animation: orbFloat 8s ease-in-out infinite;
+  }
+  .glow-orb2 {
+    position: fixed;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,255,.08) 0%, transparent 70%);
+    bottom: 50px; left: -80px;
+    pointer-events: none;
+    z-index: 0;
+    animation: orbFloat 10s ease-in-out infinite reverse;
+  }
+  @keyframes orbFloat {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(30px); }
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    padding: 32px 0 28px;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--accent);
+    text-transform: uppercase;
+    opacity: .7;
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 42px;
+    letter-spacing: -1px;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 60%, #8844ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--dim);
+    font-family: var(--mono);
+    letter-spacing: 1px;
+  }
+
+  /* Steps */
+  .steps {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin: 28px 0;
+    position: relative;
+  }
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 16px; left: 10%; right: 10%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), var(--border), transparent);
+  }
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    position: relative;
+  }
+  .step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--dim);
+    transition: all .3s;
+    position: relative;
+    z-index: 1;
+  }
+  .step.active .step-num {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(0,212,255,.3);
+  }
+  .step.done .step-num {
+    background: var(--green);
+    border-color: var(--green);
+    color: var(--bg);
+  }
+  .step-label {
+    font-size: 10px;
+    color: var(--dim);
+    letter-spacing: .5px;
+    text-align: center;
+  }
+  .step.active .step-label { color: var(--accent); }
+  .step.done .step-label { color: var(--green); }
+
+  /* Cards */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 12px;
+    transition: border-color .3s;
+  }
+  .card.active-card {
+    border-color: rgba(0,212,255,.3);
+    box-shadow: 0 0 20px rgba(0,212,255,.06);
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .card-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: rgba(0,212,255,.1);
+    border: 1px solid rgba(0,212,255,.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .card-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .card-desc {
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 1px;
+    font-family: var(--mono);
+  }
+
+  /* File drop zone */
+  .drop-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,212,255,.04);
+  }
+  .drop-zone input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .drop-icon { font-size: 28px; margin-bottom: 8px; }
+  .drop-text {
+    font-size: 13px;
+    color: var(--dim);
+    font-family: var(--mono);
+  }
+  .drop-hint {
+    font-size: 10px;
+    color: var(--dim);
+    opacity: .5;
+    margin-top: 4px;
+  }
+  .file-selected {
+    background: rgba(0,255,136,.05);
+    border-color: var(--green);
+    padding: 12px 16px;
+  }
+  .file-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    word-break: break-all;
+  }
+  .file-meta {
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+
+  /* Sources list */
+  .sources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .source-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,.02);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    transition: all .3s;
+  }
+  .source-item.loading { border-color: var(--yellow); color: var(--yellow); }
+  .source-item.success { border-color: rgba(0,255,136,.3); color: var(--green); }
+  .source-item.error   { border-color: rgba(255,51,102,.3); color: var(--red); opacity: .6; }
+  .source-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--dim);
+    flex-shrink: 0;
+    transition: background .3s;
+  }
+  .source-item.loading .source-dot { background: var(--yellow); animation: pulse 1s infinite; }
+  .source-item.success .source-dot { background: var(--green); }
+  .source-item.error   .source-dot { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .source-url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Generate button */
+  .btn-generate {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: var(--bg);
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .btn-generate::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,.15), transparent);
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .btn-generate:hover::before { opacity: 1; }
+  .btn-generate:active { transform: scale(.98); }
+  .btn-generate:disabled {
+    background: var(--border);
+    color: var(--dim);
+    cursor: not-allowed;
+  }
+  .btn-generate:disabled::before { display: none; }
+
+  /* Progress */
+  .progress-wrap {
+    margin-top: 12px;
+    display: none;
+  }
+  .progress-wrap.visible { display: block; }
+  .progress-bar-bg {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    border-radius: 2px;
+    transition: width .4s ease;
+    width: 0%;
+  }
+  .progress-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+    text-align: center;
+  }
+
+  /* Log */
+  .log-wrap {
+    margin-top: 12px;
+    max-height: 160px;
+    overflow-y: auto;
+    background: rgba(0,0,0,.3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: none;
+  }
+  .log-wrap.visible { display: block; }
+  .log-line {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    line-height: 1.7;
+    padding: 1px 0;
+  }
+  .log-line.ok   { color: var(--green); }
+  .log-line.err  { color: var(--red); }
+  .log-line.info { color: var(--accent); }
+  .log-line.warn { color: var(--yellow); }
+
+  /* Result */
+  .result-card {
+    display: none;
+    background: rgba(0,255,136,.05);
+    border: 1px solid rgba(0,255,136,.3);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 12px;
+    text-align: center;
+  }
+  .result-card.visible { display: block; }
+  .result-icon { font-size: 36px; margin-bottom: 10px; }
+  .result-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--green);
+    margin-bottom: 4px;
+  }
+  .result-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+    margin-bottom: 16px;
+  }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: var(--green);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .2s;
+  }
+  .btn-download:hover { opacity: .9; transform: translateY(-1px); }
+  .btn-reset {
+    display: block;
+    margin: 12px auto 0;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Error card */
+  .error-card {
+    display: none;
+    background: rgba(255,51,102,.05);
+    border: 1px solid rgba(255,51,102,.3);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-top: 12px;
+  }
+  .error-card.visible { display: block; }
+  .error-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--red);
+    margin-bottom: 4px;
+  }
+  .error-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--dim);
+  }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .stat {
+    background: rgba(0,0,0,.2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-key {
+    font-size: 9px;
+    color: var(--dim);
+    margin-top: 3px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="glow-orb"></div>
+<div class="glow-orb2"></div>
+
+<div class="container">
+  <header>
+    <div class="logo">Cloudflare WARP</div>
+    <h1>WARP·RU</h1>
+    <div class="subtitle">conf generator // android</div>
+  </header>
+
+  <!-- Steps indicator -->
+  <div class="steps">
+    <div class="step active" id="s1">
+      <div class="step-num">1</div>
+      <div class="step-label">BASE</div>
+    </div>
+    <div class="step" id="s2">
+      <div class="step-num">2</div>
+      <div class="step-label">SOURCES</div>
+    </div>
+    <div class="step" id="s3">
+      <div class="step-num">3</div>
+      <div class="step-label">GENERATE</div>
+    </div>
+    <div class="step" id="s4">
+      <div class="step-num">4</div>
+      <div class="step-label">DONE</div>
+    </div>
+  </div>
+
+  <!-- Step 1: Base conf -->
+  <div class="card active-card" id="card1">
+    <div class="card-header">
+      <div class="card-icon">📄</div>
+      <div>
+        <div class="card-title">Базовый конфиг</div>
+        <div class="card-desc">warp-base.conf или wgcf-profile.conf</div>
+      </div>
+    </div>
+    <!-- Сохранённый файл (показывается если есть в localStorage) -->
+    <div id="savedBanner" style="display:none; margin-bottom:10px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; background:rgba(0,255,136,.06); border:1px solid rgba(0,255,136,.25); border-radius:8px;">
+        <div style="min-width:0;">
+          <div style="font-family:var(--mono); font-size:11px; color:var(--green); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" id="savedFileName"></div>
+          <div style="font-family:var(--mono); font-size:10px; color:var(--dim); margin-top:2px;" id="savedFileMeta"></div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0; margin-left:10px;">
+          <button onclick="changeSaved()" style="background:none; border:1px solid var(--border); color:var(--dim); padding:4px 10px; border-radius:5px; font-family:var(--mono); font-size:10px; cursor:pointer;">Сменить</button>
+          <button onclick="clearSaved()" style="background:none; border:1px solid rgba(255,51,102,.3); color:var(--red); padding:4px 10px; border-radius:5px; font-family:var(--mono); font-size:10px; cursor:pointer;">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Зона выбора файла (скрыта если есть сохранённый) -->
+    <div id="dropZoneWrap">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".conf,.txt">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text">Нажмите или перетащите файл</div>
+        <div class="drop-hint">warp-base.conf</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Sources -->
+  <div class="card" id="card2">
+    <div class="card-header">
+      <div class="card-icon">🌐</div>
+      <div>
+        <div class="card-title">Источники RU IP</div>
+        <div class="card-desc">sources.txt с GitHub</div>
+      </div>
+    </div>
+    <div class="sources-list" id="sourcesList">
+      <div class="source-item">
+        <div class="source-dot"></div>
+        <div class="source-url">Ожидание...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Generate -->
+  <div class="card" id="card3">
+    <div class="card-header">
+      <div class="card-icon">⚙️</div>
+      <div>
+        <div class="card-title">Генерация</div>
+        <div class="card-desc">warp-ru.conf с RU маршрутами</div>
+      </div>
+    </div>
+    <button class="btn-generate" id="btnGenerate" disabled>
+      ⬇ Сгенерировать и скачать
+    </button>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar-bg">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div class="progress-text" id="progressText">Инициализация...</div>
+    </div>
+    <div class="log-wrap" id="logWrap"></div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="resultCard">
+    <div class="result-icon">✅</div>
+    <div class="result-title">Файл скачан</div>
+    <div class="result-meta" id="resultMeta"></div>
+    <div class="stats" id="statsBlock"></div>
+    <div style="font-family:var(--mono); font-size:10px; color:var(--dim); margin-top:12px; opacity:.7;" id="saveHint"></div>
+    <br>
+    <button class="btn-reset" onclick="reset()">↺ Сгенерировать заново</button>
+  </div>
+
+  <!-- Error -->
+  <div class="error-card" id="errorCard">
+    <div class="error-title">⚠ Ошибка</div>
+    <div class="error-text" id="errorText"></div>
+  </div>
+</div>
+
+<script>
+const SOURCES_URL = 'https://raw.githubusercontent.com/AlexandrVK/WireGuardProjectRu/main/sources.txt';
+const CORS_PROXY  = 'https://corsproxy.io/?';
+const LS_CONF_KEY  = 'warpru_base_conf';
+const LS_NAME_KEY  = 'warpru_base_name';
+const LS_SIZE_KEY  = 'warpru_base_size';
+const LS_DATE_KEY  = 'warpru_base_date';
+
+let baseConfText  = null;
+let ruIpList      = null;
+let sourcesUrls   = [];
+
+// ── localStorage helpers ─────────────────────────────────────────────────────
+
+function saveConf(text, name, size) {
+  try {
+    localStorage.setItem(LS_CONF_KEY, text);
+    localStorage.setItem(LS_NAME_KEY, name);
+    localStorage.setItem(LS_SIZE_KEY, size);
+    localStorage.setItem(LS_DATE_KEY, new Date().toLocaleDateString('ru'));
+  } catch(e) { /* localStorage может быть полным */ }
+}
+
+function loadSavedConf() {
+  try {
+    const text = localStorage.getItem(LS_CONF_KEY);
+    const name = localStorage.getItem(LS_NAME_KEY) || 'warp-base.conf';
+    const size = localStorage.getItem(LS_SIZE_KEY) || '?';
+    const date = localStorage.getItem(LS_DATE_KEY) || '';
+    if (text && validateConf(text)) return { text, name, size, date };
+  } catch(e) {}
+  return null;
+}
+
+function clearSavedConf() {
+  try {
+    [LS_CONF_KEY, LS_NAME_KEY, LS_SIZE_KEY, LS_DATE_KEY].forEach(k => localStorage.removeItem(k));
+  } catch(e) {}
+}
+
+// ── UI helpers ──────────────────────────────────────────────────────────────
+
+function setStep(n) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('s'+i);
+    el.classList.remove('active','done');
+    if (i < n)  el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  });
+  [1,2,3].forEach(i => {
+    document.getElementById('card'+i).classList.toggle('active-card', i === n);
+  });
+}
+
+function log(msg, type='') {
+  const wrap = document.getElementById('logWrap');
+  wrap.classList.add('visible');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.textContent = '› ' + msg;
+  wrap.appendChild(line);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function setProgress(pct, text) {
+  document.getElementById('progressWrap').classList.add('visible');
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = text;
+}
+
+function showError(msg) {
+  document.getElementById('errorCard').classList.add('visible');
+  document.getElementById('errorText').textContent = msg;
+}
+
+function hideError() {
+  document.getElementById('errorCard').classList.remove('visible');
+}
+
+// ── File input + localStorage ────────────────────────────────────────────────
+
+function initFileUI() {
+  const dropZone  = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', ()=> dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+}
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    if (!validateConf(text)) {
+      showError('Файл не похож на WireGuard конфиг. Нужен файл с секцией [Interface] и PrivateKey.');
+      return;
+    }
+    hideError();
+    baseConfText = text;
+    saveConf(text, file.name, (file.size/1024).toFixed(1) + ' КБ');
+    showSavedBanner(file.name, (file.size/1024).toFixed(1) + ' КБ', new Date().toLocaleDateString('ru'));
+    document.getElementById('dropZoneWrap').style.display = 'none';
+    setStep(2);
+    loadSources();
+  };
+  reader.readAsText(file);
+}
+
+function showSavedBanner(name, size, date) {
+  document.getElementById('savedFileName').textContent = '✓ ' + name;
+  document.getElementById('savedFileMeta').textContent = size + ' · сохранён ' + date;
+  document.getElementById('savedBanner').style.display = 'block';
+}
+
+function clearSaved() {
+  clearSavedConf();
+  baseConfText = null;
+  document.getElementById('savedBanner').style.display = 'none';
+  document.getElementById('dropZoneWrap').style.display = 'block';
+  setStep(1);
+  document.getElementById('sourcesList').innerHTML =
+    '<div class="source-item"><div class="source-dot"></div><div class="source-url">Ожидание...</div></div>';
+  document.getElementById('btnGenerate').disabled = true;
+}
+
+function changeSaved() {
+  document.getElementById('dropZoneWrap').style.display = 'block';
+  document.getElementById('dropZone').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Init on load: check localStorage ─────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', () => {
+  initFileUI();
+  const saved = loadSavedConf();
+  if (saved) {
+    baseConfText = saved.text;
+    showSavedBanner(saved.name, saved.size, saved.date);
+    document.getElementById('dropZoneWrap').style.display = 'none';
+    loadSources();
+  }
+});
+
+function validateConf(text) {
+  return text.includes('[Interface]') && text.includes('PrivateKey');
+}
+
+function countLines(text) {
+  return text.split('\n').filter(l => l.trim()).length;
+}
+
+// ── Sources loading ───────────────────────────────────────────────────────────
+
+async function fetchWithFallback(url, timeout=8000) {
+  // Try direct first (works for raw.githubusercontent.com — CORS allowed)
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), timeout);
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (r.ok) return await r.text();
+  } catch(e) {}
+  // Fallback: CORS proxy
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), timeout);
+    const r = await fetch(CORS_PROXY + encodeURIComponent(url), { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (r.ok) return await r.text();
+  } catch(e) {}
+  throw new Error('Недоступен: ' + url);
+}
+
+async function loadSources() {
+  const list = document.getElementById('sourcesList');
+  list.innerHTML = '<div class="source-item loading"><div class="source-dot"></div><div class="source-url">Загружаем sources.txt с GitHub...</div></div>';
+
+  let sourcesText;
+  try {
+    sourcesText = await fetchWithFallback(SOURCES_URL, 6000);
+  } catch(e) {
+    list.innerHTML = '<div class="source-item error"><div class="source-dot"></div><div class="source-url">Не удалось загрузить sources.txt</div></div>';
+    showError('Не удалось загрузить список источников с GitHub. Проверьте интернет-соединение.');
+    return;
+  }
+
+  sourcesUrls = sourcesText.split('\n')
+    .map(l => l.trim())
+    .filter(l => l && !l.startsWith('#'));
+
+  if (!sourcesUrls.length) {
+    showError('sources.txt пуст или содержит только комментарии.');
+    return;
+  }
+
+  list.innerHTML = '';
+  sourcesUrls.forEach((url, i) => {
+    const short = url.replace('https://raw.githubusercontent.com/', 'gh/');
+    list.innerHTML += `
+      <div class="source-item" id="src${i}">
+        <div class="source-dot"></div>
+        <div class="source-url">${short}</div>
+      </div>`;
+  });
+
+  setStep(3);
+  document.getElementById('btnGenerate').disabled = false;
+}
+
+// ── Generate ─────────────────────────────────────────────────────────────────
+
+document.getElementById('btnGenerate').addEventListener('click', generate);
+
+async function generate() {
+  hideError();
+  document.getElementById('btnGenerate').disabled = true;
+  document.getElementById('logWrap').innerHTML = '';
+  document.getElementById('resultCard').classList.remove('visible');
+
+  log('Начинаем генерацию...', 'info');
+  setProgress(5, 'Скачиваем RU IP список...');
+
+  // Try sources in order
+  let rawIps = null;
+  for (let i = 0; i < sourcesUrls.length; i++) {
+    const url = sourcesUrls[i];
+    const item = document.getElementById('src'+i);
+    item.classList.add('loading');
+    log('Пробуем: ' + url.split('/').slice(-1)[0]);
+    setProgress(5 + (i * 20), 'Источник ' + (i+1) + '/' + sourcesUrls.length + '...');
+    try {
+      const text = await fetchWithFallback(url, 10000);
+      if (text && text.length > 1000) {
+        rawIps = text;
+        item.classList.remove('loading');
+        item.classList.add('success');
+        log('✓ Скачан (' + Math.round(text.length/1024) + ' КБ)', 'ok');
+        break;
+      }
+    } catch(e) {
+      item.classList.remove('loading');
+      item.classList.add('error');
+      log('✗ Недоступен', 'err');
+    }
+  }
+
+  if (!rawIps) {
+    showError('Не удалось скачать RU IP список ни с одного источника. Проверьте интернет.');
+    document.getElementById('btnGenerate').disabled = false;
+    return;
+  }
+
+  setProgress(70, 'Парсим IP-блоки...');
+  log('Парсим IP-блоки...', 'info');
+
+  const ipBlocks = rawIps.split('\n')
+    .map(l => l.trim())
+    .filter(l => /^\d+\.\d+\.\d+\.\d+\/\d+$/.test(l));
+
+  if (ipBlocks.length < 100) {
+    showError('Список IP подозрительно мал (' + ipBlocks.length + ' блоков). Возможно файл повреждён.');
+    document.getElementById('btnGenerate').disabled = false;
+    return;
+  }
+
+  log('Блоков: ' + ipBlocks.toLocaleString(), 'ok');
+  setProgress(85, 'Генерируем конфиг...');
+
+  const conf = buildConf(baseConfText, ipBlocks);
+  if (!conf) {
+    showError('Не удалось сформировать конфиг. Проверьте что базовый файл содержит секцию [Peer].');
+    document.getElementById('btnGenerate').disabled = false;
+    return;
+  }
+
+  setProgress(90, 'Упаковываем в архив...');
+  log('Упаковываем warp-ru.conf в zip...', 'info');
+
+  const zip = new JSZip();
+  zip.file('warp-ru.conf', conf);
+  const zipBlob = await zip.generateAsync({
+    type: 'blob',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 }
+  });
+
+  setProgress(100, 'Скачиваем...');
+  log('Архив готов — ' + Math.round(zipBlob.size/1024) + ' КБ', 'ok');
+
+  // Auto-download
+  const dlUrl = URL.createObjectURL(zipBlob);
+  const a = document.createElement('a');
+  a.href = dlUrl;
+  a.download = 'warp-ru.zip';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(dlUrl); a.remove(); }, 1000);
+
+  // Stats
+  document.getElementById('resultMeta').textContent =
+    'warp-ru.zip · ' + Math.round(zipBlob.size/1024) + ' КБ · внутри: warp-ru.conf';
+  document.getElementById('statsBlock').innerHTML = `
+    <div class="stat"><div class="stat-val">${ipBlocks.length.toLocaleString()}</div><div class="stat-key">IP блоков</div></div>
+    <div class="stat"><div class="stat-val">${conf.split('\n').length}</div><div class="stat-key">Строк</div></div>
+    <div class="stat"><div class="stat-val">${Math.round(conf.length/1024)}</div><div class="stat-key">КБ</div></div>
+  `;
+
+  const hint = document.getElementById('saveHint');
+  if (hint) hint.textContent = '📁 Файл warp-ru.zip сохранён в загрузки. Распакуйте и импортируйте warp-ru.conf в WireGuard.';
+
+  document.getElementById('resultCard').classList.add('visible');
+  document.getElementById('btnGenerate').disabled = false;
+  setStep(4);
+}
+
+// ── Build conf ────────────────────────────────────────────────────────────────
+
+function buildConf(base, ipBlocks) {
+  const lines = base.split('\n');
+  const out   = [];
+  let peerSeen = false;
+  let peerDone = false;
+  const allowedLine = 'AllowedIPs = ' + ipBlocks.join(', ');
+
+  for (const line of lines) {
+    const t = line.trim();
+    if (t === '[Peer]') peerSeen = true;
+    // Remove existing AllowedIPs and PersistentKeepalive in [Peer]
+    if (peerSeen && (t.startsWith('AllowedIPs') || t.startsWith('PersistentKeepalive'))) continue;
+    // Inject before next section after [Peer]
+    if (peerSeen && !peerDone && t.startsWith('[') && t !== '[Peer]') {
+      out.push(allowedLine);
+      out.push('PersistentKeepalive = 25');
+      peerDone = true;
+    }
+    out.push(line);
+  }
+  // Inject at end if [Peer] was last section
+  if (peerSeen && !peerDone) {
+    out.push(allowedLine);
+    out.push('PersistentKeepalive = 25');
+  }
+
+  if (!peerSeen) return null;
+  return out.join('\n');
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+
+function reset() {
+  sourcesUrls  = [];
+  document.getElementById('logWrap').innerHTML = '';
+  document.getElementById('logWrap').classList.remove('visible');
+  document.getElementById('progressWrap').classList.remove('visible');
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('errorCard').classList.remove('visible');
+  document.getElementById('saveHint').textContent = '';
+
+  // Reset sources state
+  document.getElementById('sourcesList').innerHTML =
+    '<div class="source-item"><div class="source-dot"></div><div class="source-url">Ожидание...</div></div>';
+  document.getElementById('btnGenerate').disabled = true;
+
+  // If we have saved conf — go back to step 2 ready to re-generate
+  const saved = loadSavedConf();
+  if (saved) {
+    baseConfText = saved.text;
+    document.getElementById('dropZoneWrap').style.display = 'none';
+    document.getElementById('savedBanner').style.display = 'block';
+    setStep(2);
+    loadSources();
+  } else {
+    baseConfText = null;
+    document.getElementById('savedBanner').style.display = 'none';
+    document.getElementById('dropZoneWrap').style.display = 'block';
+    setStep(1);
+  }
+}
+</script>
+</body>
+</html>
