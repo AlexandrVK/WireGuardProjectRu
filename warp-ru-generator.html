@@ -937,12 +937,29 @@ async function generate() {
 
 // ── Build conf ────────────────────────────────────────────────────────────────
 
+function extractDnsV4(base) {
+  // Извлекаем IPv4 DNS адреса из секции [Interface] и возвращаем как /32
+  for (const line of base.split('\n')) {
+    const t = line.trim();
+    if (t.match(/^DNS\s*=/i)) {
+      return t.replace(/^DNS\s*=\s*/i, '').split(',')
+        .map(s => s.trim())
+        .filter(s => /^\d+\.\d+\.\d+\.\d+$/.test(s))
+        .map(s => s + '/32');
+    }
+  }
+  return [];
+}
+
 function buildConf(base, ipBlocks) {
   const lines = base.split('\n');
   const out   = [];
   let peerSeen = false;
   let peerDone = false;
-  const allowedLine = 'AllowedIPs = ' + ipBlocks.join(', ');
+  // DNS IPv4 /32 адреса идут первыми — иначе DNS-трафик идёт мимо туннеля
+  const dnsIPs = extractDnsV4(base);
+  const allIPs = [...dnsIPs, ...ipBlocks];
+  const allowedLine = 'AllowedIPs = ' + allIPs.join(', ');
 
   for (const line of lines) {
     const t = line.trim();

@@ -377,7 +377,18 @@ if ($TunnelRunning) { Write-Log "wg show: $($wgShowOut[0])" }
 function Build-Config {
     Write-Log "Генерация $FinalConf..."
     $RU_IPs = Get-Content $LastRU | Where-Object { $_ -match "^\d+\.\d+\.\d+\.\d+/\d+$" }
-    $AllowedLine = "AllowedIPs = " + ($RU_IPs -join ", ")
+    # Извлекаем DNS IPv4 адреса из warp-base.conf и добавляем как /32 в начало AllowedIPs
+    # Без этого DNS-трафик идёт мимо туннеля и VPN не работает без ручной смены DNS
+    $DnsIPs = @()
+    $dnsLine = (Get-Content $BaseConf | Where-Object { $_ -match "^\s*DNS\s*=" } | Select-Object -First 1)
+    if ($dnsLine) {
+        $dnsLine -replace "^\s*DNS\s*=\s*", "" -split "," | ForEach-Object {
+            $addr = $_.Trim()
+            if ($addr -match "^\d+\.\d+\.\d+\.\d+$") { $DnsIPs += "$addr/32" }
+        }
+    }
+    if ($DnsIPs.Count -gt 0) { Write-Log "DNS в AllowedIPs: $($DnsIPs -join ', ')" }
+    $AllowedLine = "AllowedIPs = " + (($DnsIPs + $RU_IPs) -join ", ")
     # Читаем warp-base.conf, вставляем AllowedIPs и PersistentKeepalive внутрь секции [Peer]
     $lines = Get-Content $BaseConf
     $out = @()
