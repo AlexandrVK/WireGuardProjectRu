@@ -139,13 +139,18 @@ if (Test-Path $BaseConf) {
         $WgcfUrl = $null
         try {
             $release = Invoke-RestMethod -Uri $WgcfApiUrl -Headers @{"User-Agent"="WireGuardProject"} -ErrorAction Stop
-            $asset = $release.assets | Where-Object { $_.name -like "*windows_amd64*" } | Select-Object -First 1
+            $wgcfArch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "386" }
+            $asset = $release.assets | Where-Object { $_.name -like "*windows_$wgcfArch*" } | Select-Object -First 1
             if ($asset) { $WgcfUrl = $asset.browser_download_url }
         } catch {}
 
         if (-not $WgcfUrl) {
             Write-Log "API недоступен, резервная ссылка v2.2.30" "WARN"
-            $WgcfUrl = "https://github.com/ViRb3/wgcf/releases/download/v2.2.30/wgcf_2.2.30_windows_amd64.exe"
+            if ([Environment]::Is64BitOperatingSystem) {
+                $WgcfUrl = "https://github.com/ViRb3/wgcf/releases/download/v2.2.30/wgcf_2.2.30_windows_amd64.exe"
+            } else {
+                $WgcfUrl = "https://github.com/ViRb3/wgcf/releases/download/v2.2.30/wgcf_2.2.30_windows_386.exe"
+            }
         }
         Write-Log "Скачивание wgcf: $WgcfUrl"
 
