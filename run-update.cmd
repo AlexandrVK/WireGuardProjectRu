@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-:: Проверка прав администратора
+:: test for admin rights
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo RUN AS ADMIN ....
@@ -9,7 +9,6 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-:: Удаляет ru-last-run.txt чтобы обойти проверку "уже запускался сегодня"
 if exist "%~dp0ru-last-run.txt" del /f /q "%~dp0ru-last-run.txt"
 if exist "C:\WireGuardProject\ru-last-run.txt" del /f /q "C:\WireGuardProject\ru-last-run.txt"
 

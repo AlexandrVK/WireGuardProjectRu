@@ -7,6 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0a0f1e">
 <title>WARP·RU</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -137,53 +138,37 @@
     flex: 1;
     position: relative;
   }
+  .step-num {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--dim);
+    transition: all .3s;
+    position: relative;
+    z-index: 1;
+  }
+  .step.active .step-num {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(0,212,255,.3);
+  }
+  .step.done .step-num {
+    background: var(--green);
+    border-color: var(--green);
+    color: var(--bg);
+  }
   .step-label {
     font-size: 10px;
     color: var(--dim);
     letter-spacing: .5px;
     text-align: center;
   }
-    .step-num {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: var(--panel);
-    border: 2px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--dim);
-    position: relative;
-    z-index: 1;
-    transition: background .3s, color .3s, border-color .3s, box-shadow .3s;
-  }
-  .step.spinning .step-num {
-    color: var(--accent);
-    border-color: transparent;
-  }
-  .step.spinning .step-num::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    border-top-color: var(--accent);
-    border-right-color: rgba(0,212,255,.3);
-    animation: spin .8s linear infinite;
-  }
-  .step.done .step-num {
-    background: var(--panel);
-    border-color: var(--accent);
-    color: var(--accent);
-    box-shadow: 0 0 12px rgba(0,212,255,.3);
-  }
-  .step.error .step-num {
-    background: transparent;
-    border-color: var(--red);
-    color: var(--red);
-    box-shadow: 0 0 10px rgba(255,51,102,.3);
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  /* Labels stay in default dim color regardless of step state */
+  .step.active .step-label { color: var(--accent); }
+  .step.done .step-label { color: var(--green); }
 
   /* Cards */
   .card {
@@ -657,9 +642,7 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
-
 const SOURCES_URL = 'https://raw.githubusercontent.com/AlexandrVK/WireGuardProjectRu/main/sources.txt';
 const CORS_PROXY  = 'https://corsproxy.io/?';
 const LS_CONF_KEY  = 'warpru_base_conf';
@@ -701,26 +684,17 @@ function clearSavedConf() {
 
 // ── UI helpers ──────────────────────────────────────────────────────────────
 
-// ── Step spinner API ─────────────────────────────────────────────────────────
-function stepSpinning(n) {
-  const el = document.getElementById('s' + n);
-  if (!el) return;
-  el.classList.remove('done', 'error', 'active');
-  el.classList.add('spinning');
+function setStep(n) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('s'+i);
+    el.classList.remove('active','done');
+    if (i < n)  el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  });
+  [1,2,3].forEach(i => {
+    document.getElementById('card'+i).classList.toggle('active-card', i === n);
+  });
 }
-function markDone(n) {
-  const el = document.getElementById('s' + n);
-  if (!el) return;
-  el.classList.remove('spinning', 'error', 'active');
-  el.classList.add('done');
-}
-function markError(n) {
-  const el = document.getElementById('s' + n);
-  if (!el) return;
-  el.classList.remove('spinning', 'done', 'active');
-  el.classList.add('error');
-}
-function setStep(n) { markDone(n); } // совместимость
 
 function log(msg, type='') {
   const wrap = document.getElementById('logWrap');
@@ -760,12 +734,10 @@ function initFileUI() {
 
 function handleFile(file) {
   if (!file) return;
-  stepSpinning(1);
   const reader = new FileReader();
   reader.onload = e => {
     const text = e.target.result;
     if (!validateConf(text)) {
-      markError(1);
       showError('Файл не похож на WireGuard конфиг. Нужен файл с секцией [Interface] и PrivateKey.');
       return;
     }
@@ -774,7 +746,7 @@ function handleFile(file) {
     saveConf(text, file.name, (file.size/1024).toFixed(1) + ' КБ');
     showSavedBanner(file.name, (file.size/1024).toFixed(1) + ' КБ', new Date().toLocaleDateString('ru'));
     document.getElementById('dropZoneWrap').style.display = 'none';
-    markDone(1);
+    setStep(2);
     loadSources();
   };
   reader.readAsText(file);
@@ -791,8 +763,7 @@ function clearSaved() {
   baseConfText = null;
   document.getElementById('savedBanner').style.display = 'none';
   document.getElementById('dropZoneWrap').style.display = 'block';
-  [1,2,3,4].forEach(i => { const el = document.getElementById('s'+i); if(el){el.classList.remove('done','active','spinning','error');} });
-  log('Готов к новой генерации', 'info');
+  setStep(1);
   document.getElementById('sourcesList').innerHTML =
     '<div class="source-item"><div class="source-dot"></div><div class="source-url">Ожидание...</div></div>';
   document.getElementById('btnGenerate').disabled = true;
@@ -812,7 +783,6 @@ window.addEventListener('DOMContentLoaded', () => {
     baseConfText = saved.text;
     showSavedBanner(saved.name, saved.size, saved.date);
     document.getElementById('dropZoneWrap').style.display = 'none';
-    markDone(1);
     loadSources();
   }
 });
@@ -849,7 +819,6 @@ async function fetchWithFallback(url, timeout=8000) {
 
 async function loadSources() {
   const list = document.getElementById('sourcesList');
-  stepSpinning(2);
   list.innerHTML = '<div class="source-item loading"><div class="source-dot"></div><div class="source-url">Загружаем sources.txt с GitHub...</div></div>';
 
   let sourcesText;
@@ -857,7 +826,6 @@ async function loadSources() {
     sourcesText = await fetchWithFallback(SOURCES_URL, 6000);
   } catch(e) {
     list.innerHTML = '<div class="source-item error"><div class="source-dot"></div><div class="source-url">Не удалось загрузить sources.txt</div></div>';
-    markError(2);
     showError('Не удалось загрузить список источников с GitHub. Проверьте интернет-соединение.');
     return;
   }
@@ -881,7 +849,7 @@ async function loadSources() {
       </div>`;
   });
 
-  markDone(2);
+  setStep(3);
   document.getElementById('btnGenerate').disabled = false;
 }
 
@@ -895,7 +863,6 @@ async function generate() {
   document.getElementById('logWrap').innerHTML = '';
   document.getElementById('resultCard').classList.remove('visible');
 
-  stepSpinning(3);
   let ok = false;
   try {
     log('Начинаем генерацию...', 'info');
@@ -926,7 +893,6 @@ async function generate() {
     }
 
     if (!rawIps) {
-      markError(3);
       showError('Не удалось скачать RU IP список ни с одного источника. Проверьте интернет.');
       return;
     }
@@ -939,7 +905,6 @@ async function generate() {
       .filter(l => /^\d+\.\d+\.\d+\.\d+\/\d+$/.test(l));
 
     if (ipBlocks.length < 100) {
-      markError(3);
       showError('Список IP подозрительно мал (' + ipBlocks.length + ' блоков). Возможно файл повреждён.');
       return;
     }
@@ -948,16 +913,19 @@ async function generate() {
     setProgress(85, 'Генерируем конфиг...');
     const conf = buildConf(baseConfText, ipBlocks);
     if (!conf) {
-      markError(3);
       showError('Не удалось сформировать конфиг. Проверьте что базовый файл содержит секцию [Peer].');
       return;
     }
 
     setProgress(90, 'Упаковываем в архив...');
-    log('Формируем ZIP архив...', 'info');
+    log('Упаковываем warp-ru.conf в zip...', 'info');
     const zip = new JSZip();
     zip.file('warp-ru.conf', conf);
-    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const zipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 }
+    });
 
     setProgress(100, 'Готово!');
     log('Архив готов — ' + Math.round(zipBlob.size/1024) + ' КБ', 'ok');
@@ -982,23 +950,17 @@ async function generate() {
     const hint = document.getElementById('saveHint');
     if (hint) hint.textContent = '📁 Файл warp-ru.zip сохранён в загрузки. Распакуйте и импортируйте warp-ru.conf в WG Tunnel.';
 
-    // GENERATE done
-    markDone(3);
-    // DONE: spinner пока скачивание инициируется
-    stepSpinning(4);
-    // Показываем результат
-    document.getElementById('resultCard').classList.add('visible');
-    markDone(4);
-    log('✓ Файл отправлен на скачивание', 'ok');
     ok = true;
 
   } catch(err) {
-    console.error('generate() error:', err);
-    markError(3);
-    showError('Ошибка: ' + (err.message || String(err)));
-    log('Ошибка: ' + (err.message || String(err)), 'err');
+    showError('Ошибка: ' + err.message);
+    log('Ошибка: ' + err.message, 'err');
   } finally {
     document.getElementById('btnGenerate').disabled = false;
+    if (ok) {
+      document.getElementById('resultCard').classList.add('visible');
+      setStep(4);
+    }
   }
 }
 
@@ -1077,25 +1039,19 @@ function reset() {
     '<div class="source-item"><div class="source-dot"></div><div class="source-url">Ожидание...</div></div>';
   document.getElementById('btnGenerate').disabled = true;
 
-  // Сбрасываем все кружки в исходное состояние — всегда, до любой логики
-  [1,2,3,4].forEach(i => {
-    const el = document.getElementById('s'+i);
-    if (el) el.classList.remove('done','active','spinning','error');
-  });
-
   // If we have saved conf — go back to step 2 ready to re-generate
   const saved = loadSavedConf();
   if (saved) {
     baseConfText = saved.text;
     document.getElementById('dropZoneWrap').style.display = 'none';
     document.getElementById('savedBanner').style.display = 'block';
-    markDone(1);
+    setStep(2);
     loadSources();
   } else {
     baseConfText = null;
     document.getElementById('savedBanner').style.display = 'none';
     document.getElementById('dropZoneWrap').style.display = 'block';
-    // circles already reset above
+    setStep(1);
   }
 }
 </script>

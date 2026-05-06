@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-:: Проверка прав администратора
+:: test for admin rights
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo RUN AS ADMIN ....

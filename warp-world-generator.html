@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0b1a">
+<title>WARP·WORLD</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #0e0b1a;
+    --panel:   #130f22;
+    --border:  #2a1f4a;
+    --acc1:    #b060ff;
+    --acc2:    #ff3aff;
+    --green:   #39ffa0;
+    --red:     #ff4466;
+    --yellow:  #ffcc44;
+    --text:    #d0c8f0;
+    --dim:     #5a4880;
+    --mono:    'JetBrains Mono', monospace;
+    --sans:    'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; overflow-x: hidden; }
+
+  /* Mesh background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(176,96,255,.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 80% 90%, rgba(255,58,255,.08) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(176,96,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(176,96,255,.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .wrap {
+    position: relative; z-index: 1;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px 16px 60px;
+  }
+
+  /* ── Header ── */
+  header { text-align: center; padding: 36px 0 24px; }
+  .tag {
+    display: inline-block;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 4px;
+    color: var(--acc1); opacity: .7; text-transform: uppercase;
+    border: 1px solid rgba(176,96,255,.3); border-radius: 20px;
+    padding: 4px 14px; margin-bottom: 14px;
+  }
+  h1 {
+    font-family: var(--sans); font-weight: 800; font-size: 48px;
+    line-height: 1; letter-spacing: -2px;
+    background: linear-gradient(135deg, var(--acc1) 0%, var(--acc2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; margin-bottom: 6px;
+  }
+  .subtitle { font-family: var(--mono); font-size: 11px; color: var(--dim); letter-spacing: 2px; }
+
+  /* ── Mode badge ── */
+  .mode-badge {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(176,96,255,.08);
+    border: 1px solid rgba(176,96,255,.25);
+    border-radius: 10px; padding: 10px 14px;
+    margin: 16px 0 20px; font-family: var(--mono); font-size: 11px;
+  }
+  .mode-icon { font-size: 18px; }
+  .mode-text { color: var(--acc1); }
+  .mode-desc { color: var(--dim); font-size: 10px; margin-top: 2px; }
+
+  /* ── Steps ── */
+  .steps {
+    display: flex; justify-content: center; gap: 0;
+    margin: 0 0 20px; position: relative;
+  }
+  .steps::before {
+    content: ''; position: absolute;
+    top: 15px; left: 8%; right: 8%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), var(--border), transparent);
+  }
+  .step { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; position: relative; }
+  .step-num {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--panel); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 11px; color: var(--dim);
+    transition: all .3s; position: relative; z-index: 1;
+  }
+  .step.active .step-num { border-color: var(--acc1); color: var(--acc1); box-shadow: 0 0 14px rgba(176,96,255,.35); }
+  .step.done .step-num { background: var(--green); border-color: var(--green); color: #0e0b1a; }
+  .step-label { font-size: 9px; color: var(--dim); letter-spacing: .5px; text-align: center; }
+  .step.active .step-label { color: var(--acc1); }
+  .step.done .step-label { color: var(--green); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px; margin-bottom: 10px;
+    transition: border-color .3s;
+  }
+  .card.active-card { border-color: rgba(176,96,255,.35); box-shadow: 0 0 24px rgba(176,96,255,.07); }
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .card-icon {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: rgba(176,96,255,.12); border: 1px solid rgba(176,96,255,.2);
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .card-title { font-weight: 700; font-size: 14px; color: var(--text); }
+  .card-desc { font-size: 10px; color: var(--dim); margin-top: 1px; font-family: var(--mono); }
+
+  /* ── Drop zone ── */
+  .drop-zone {
+    border: 1.5px dashed var(--border); border-radius: 10px;
+    padding: 22px 16px; text-align: center; cursor: pointer;
+    transition: all .2s; position: relative; overflow: hidden;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--acc1); background: rgba(176,96,255,.05); }
+  .drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .drop-icon { font-size: 26px; margin-bottom: 6px; }
+  .drop-text { font-size: 13px; color: var(--dim); font-family: var(--mono); }
+  .drop-hint { font-size: 10px; color: var(--dim); opacity: .5; margin-top: 3px; }
+
+  /* ── Saved banner ── */
+  .saved-banner {
+    display: none; margin-bottom: 10px; padding: 10px 14px;
+    background: rgba(57,255,160,.06); border: 1px solid rgba(57,255,160,.25);
+    border-radius: 9px; display: none; align-items: center; justify-content: space-between;
+  }
+  .saved-name { font-family: var(--mono); font-size: 11px; color: var(--green); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .saved-meta { font-family: var(--mono); font-size: 10px; color: var(--dim); margin-top: 2px; }
+  .saved-btns { display: flex; gap: 6px; flex-shrink: 0; margin-left: 10px; }
+  .btn-sm {
+    background: none; padding: 4px 10px; border-radius: 5px;
+    font-family: var(--mono); font-size: 10px; cursor: pointer; transition: all .2s;
+  }
+  .btn-sm-change { border: 1px solid var(--border); color: var(--dim); }
+  .btn-sm-change:hover { border-color: var(--acc1); color: var(--acc1); }
+  .btn-sm-clear { border: 1px solid rgba(255,68,102,.3); color: var(--red); }
+  .btn-sm-clear:hover { background: rgba(255,68,102,.1); }
+
+  /* ── Sources ── */
+  .sources-list { display: flex; flex-direction: column; gap: 6px; }
+  .source-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    background: rgba(255,255,255,.02); border: 1px solid var(--border);
+    border-radius: 6px; font-family: var(--mono); font-size: 10px; color: var(--dim);
+    transition: all .3s;
+  }
+  .source-item.loading { border-color: var(--yellow); color: var(--yellow); }
+  .source-item.success { border-color: rgba(57,255,160,.3); color: var(--green); }
+  .source-item.error   { border-color: rgba(255,68,102,.3); color: var(--red); opacity: .5; }
+  .src-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); flex-shrink: 0; transition: background .3s; }
+  .source-item.loading .src-dot { background: var(--yellow); animation: pulse 1s infinite; }
+  .source-item.success .src-dot { background: var(--green); }
+  .source-item.error   .src-dot { background: var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .src-url { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── Help toggle ── */
+  .help-toggle {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: rgba(176,96,255,.07); border: 1px solid rgba(176,96,255,.2);
+    border-radius: 8px; padding: 9px 14px; margin-bottom: 10px;
+    cursor: pointer; transition: all .2s; color: var(--acc1);
+    font-family: var(--mono); font-size: 11px; text-align: left;
+  }
+  .help-toggle:hover { background: rgba(176,96,255,.12); }
+  .help-arrow { margin-left: auto; transition: transform .2s; }
+  .help-panel {
+    display: none; background: rgba(0,0,0,.3); border: 1px solid var(--border);
+    border-radius: 9px; padding: 14px 16px; margin-bottom: 12px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.9; color: var(--dim);
+  }
+  .help-panel b { color: var(--text); }
+  .help-panel code { color: var(--green); }
+  .help-panel a { color: var(--acc1); }
+
+  /* ── Progress ── */
+  .progress-wrap { display: none; margin-top: 10px; }
+  .progress-wrap.visible { display: block; }
+  .progress-bg { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 7px; }
+  .progress-bar { height: 100%; border-radius: 2px; transition: width .4s ease; width: 0%;
+    background: linear-gradient(90deg, var(--acc1), var(--acc2)); }
+  .progress-text { font-family: var(--mono); font-size: 10px; color: var(--dim); text-align: center; }
+
+  /* ── Invert status ── */
+  .invert-status {
+    display: none; margin-top: 10px;
+    background: rgba(176,96,255,.06); border: 1px solid rgba(176,96,255,.2);
+    border-radius: 8px; padding: 10px 14px; font-family: var(--mono); font-size: 10px;
+  }
+  .invert-status.visible { display: block; }
+  .invert-row { display: flex; justify-content: space-between; padding: 2px 0; }
+  .invert-key { color: var(--dim); }
+  .invert-val { color: var(--acc1); }
+
+  /* ── Log ── */
+  .log-wrap {
+    display: none; margin-top: 10px; max-height: 140px; overflow-y: auto;
+    background: rgba(0,0,0,.35); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .log-wrap.visible { display: block; }
+  .log-line { font-family: var(--mono); font-size: 10px; color: var(--dim); line-height: 1.7; }
+  .log-line.ok   { color: var(--green); }
+  .log-line.err  { color: var(--red); }
+  .log-line.info { color: var(--acc1); }
+
+  /* ── Generate button ── */
+  .btn-generate {
+    width: 100%; padding: 15px; border: none; border-radius: 10px; margin-top: 4px;
+    background: linear-gradient(135deg, var(--acc1), var(--acc2));
+    color: #fff; font-family: var(--sans); font-weight: 800;
+    font-size: 14px; letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
+  }
+  .btn-generate::before {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,255,255,.1); opacity: 0; transition: opacity .2s;
+  }
+  .btn-generate:hover::before { opacity: 1; }
+  .btn-generate:active { transform: scale(.98); }
+  .btn-generate:disabled { background: var(--border); color: var(--dim); cursor: not-allowed; }
+  .btn-generate:disabled::before { display: none; }
+
+  /* ── Result ── */
+  .result-card {
+    display: none; background: rgba(57,255,160,.05);
+    border: 1px solid rgba(57,255,160,.3); border-radius: 14px;
+    padding: 20px; margin-top: 10px; text-align: center;
+  }
+  .result-card.visible { display: block; }
+  .result-icon { font-size: 34px; margin-bottom: 8px; }
+  .result-title { font-weight: 700; font-size: 16px; color: var(--green); margin-bottom: 4px; }
+  .result-meta { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-bottom: 14px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .stat { background: rgba(0,0,0,.25); border: 1px solid var(--border); border-radius: 8px; padding: 10px 8px; text-align: center; }
+  .stat-val { font-family: var(--mono); font-size: 17px; color: var(--acc1); line-height: 1; }
+  .stat-key { font-size: 9px; color: var(--dim); margin-top: 3px; text-transform: uppercase; letter-spacing: .5px; }
+  .save-hint { font-family: var(--mono); font-size: 10px; color: var(--dim); margin-bottom: 12px; opacity: .8; }
+  .btn-reset {
+    background: none; border: 1px solid var(--border); color: var(--dim);
+    padding: 8px 22px; border-radius: 6px; font-family: var(--mono);
+    font-size: 11px; cursor: pointer; transition: all .2s;
+  }
+  .btn-reset:hover { border-color: var(--acc1); color: var(--acc1); }
+
+  /* ── Error ── */
+  .error-card {
+    display: none; background: rgba(255,68,102,.05);
+    border: 1px solid rgba(255,68,102,.3); border-radius: 10px;
+    padding: 14px 18px; margin-top: 10px;
+  }
+  .error-card.visible { display: block; }
+  .error-title { font-size: 12px; font-weight: 700; color: var(--red); margin-bottom: 4px; }
+  .error-text { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="tag">Cloudflare WARP</div>
+    <h1>WARP·WORLD</h1>
+    <div class="subtitle">global mode // non-ru via vpn</div>
+  </header>
+
+  <!-- Mode explanation -->
+  <div class="mode-badge">
+    <div class="mode-icon">🌍</div>
+    <div>
+      <div class="mode-text">Обратный режим — через VPN идёт весь мир кроме России</div>
+      <div class="mode-desc">Российские адреса — напрямую. Всё остальное — через WARP.</div>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step active" id="s1"><div class="step-num">1</div><div class="step-label">BASE</div></div>
+    <div class="step" id="s2"><div class="step-num">2</div><div class="step-label">SOURCES</div></div>
+    <div class="step" id="s3"><div class="step-num">3</div><div class="step-label">INVERT</div></div>
+    <div class="step" id="s4"><div class="step-num">4</div><div class="step-label">DONE</div></div>
+  </div>
+
+  <!-- Card 1: base conf -->
+  <div class="card active-card" id="card1">
+    <div class="card-header">
+      <div class="card-icon">📄</div>
+      <div><div class="card-title">Базовый конфиг</div><div class="card-desc">warp-base.conf или wgcf-profile.conf</div></div>
+    </div>
+
+    <!-- Saved banner -->
+    <div class="saved-banner" id="savedBanner">
+      <div style="min-width:0">
+        <div class="saved-name" id="savedName"></div>
+        <div class="saved-meta" id="savedMeta"></div>
+      </div>
+      <div class="saved-btns">
+        <button class="btn-sm btn-sm-change" onclick="changeSaved()">Сменить</button>
+        <button class="btn-sm btn-sm-clear" onclick="clearSaved()">✕</button>
+      </div>
+    </div>
+
+    <div id="dropZoneWrap">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".conf,.txt">
+        <div class="drop-icon">📂</div>
+        <div class="drop-text">Нажмите или перетащите файл</div>
+        <div class="drop-hint">warp-base.conf</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: sources -->
+  <div class="card" id="card2">
+    <div class="card-header">
+      <div class="card-icon">🌐</div>
+      <div><div class="card-title">Загрузка RU списка</div><div class="card-desc">Для инвертирования нужен список RU IP</div></div>
+    </div>
+    <div class="sources-list" id="sourcesList">
+      <div class="source-item"><div class="src-dot"></div><div class="src-url">Ожидание...</div></div>
+    </div>
+  </div>
+
+  <!-- Card 3: generate -->
+  <div class="card" id="card3">
+    <div class="card-header">
+      <div class="card-icon">⚙️</div>
+      <div><div class="card-title">Инвертирование</div><div class="card-desc">0.0.0.0/0 минус RU = WORLD</div></div>
+    </div>
+
+    <!-- Help -->
+    <button class="help-toggle" onclick="toggleHelp()">
+      <span>💡</span>
+      <span>Как это работает? — справка</span>
+      <span class="help-arrow" id="helpArrow">▾</span>
+    </button>
+    <div class="help-panel" id="helpPanel">
+      <b>Что делает этот генератор:</b><br>
+      Скачивает список российских IP-блоков и <b>вычитает</b> их из полного адресного пространства <code>0.0.0.0/0</code>. Результат — список всех адресов <b>кроме</b> российских. Именно они пойдут через VPN.<br><br>
+      <b>DNS:</b><br>
+      DNS-адреса из вашего конфига добавляются автоматически как <code>/32</code> — без этого DNS идёт мимо туннеля и VPN не работает.<br><br>
+      <b>Как получить warp-base.conf:</b><br>
+      После установки проекта на Windows файл находится в рабочей папке проекта.<br>
+      Или вручную: скачайте <a href="https://github.com/ViRb3/wgcf/releases" target="_blank">wgcf.exe</a> и выполните:<br>
+      <code>wgcf.exe register --accept-tos</code><br>
+      <code>wgcf.exe generate</code><br>
+      Файл <code>wgcf-profile.conf</code> — это и есть ваш <code>warp-base.conf</code>.<br><br>
+      <b>Импорт в WG Tunnel (Android):</b><br>
+      + → Import from file → выбрать скачанный <code>warp-world.zip</code>.
+    </div>
+
+    <!-- Invert stats -->
+    <div class="invert-status" id="invertStatus">
+      <div class="invert-row"><span class="invert-key">RU блоков получено:</span><span class="invert-val" id="iRu">—</span></div>
+      <div class="invert-row"><span class="invert-key">Итоговых блоков (WORLD):</span><span class="invert-val" id="iWorld">—</span></div>
+      <div class="invert-row"><span class="invert-key">DNS /32 добавлено:</span><span class="invert-val" id="iDns">—</span></div>
+    </div>
+
+    <button class="btn-generate" id="btnGenerate" disabled>⬇ Сгенерировать и скачать</button>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bg"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-text" id="progressText">Инициализация...</div>
+    </div>
+    <div class="log-wrap" id="logWrap"></div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="resultCard">
+    <div class="result-icon">✅</div>
+    <div class="result-title">Файл скачан</div>
+    <div class="result-meta" id="resultMeta"></div>
+    <div class="stats" id="statsBlock"></div>
+    <div class="save-hint" id="saveHint"></div>
+    <button class="btn-reset" onclick="reset()">↺ Сгенерировать заново</button>
+  </div>
+
+  <!-- Error -->
+  <div class="error-card" id="errorCard">
+    <div class="error-title">⚠ Ошибка</div>
+    <div class="error-text" id="errorText"></div>
+  </div>
+
+</div><!-- .wrap -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const SOURCES_URL = 'https://raw.githubusercontent.com/AlexandrVK/WireGuardProjectRu/main/sources.txt';
+const CORS_PROXY  = 'https://corsproxy.io/?';
+const LS_CONF = 'warpworld_base_conf';
+const LS_NAME = 'warpworld_base_name';
+const LS_SIZE = 'warpworld_base_size';
+const LS_DATE = 'warpworld_base_date';
+
+let baseConfText = null;
+let sourcesUrls  = [];
+
+// ── localStorage ─────────────────────────────────────────────────────────────
+function saveConf(text, name, size) {
+  try {
+    localStorage.setItem(LS_CONF, text);
+    localStorage.setItem(LS_NAME, name);
+    localStorage.setItem(LS_SIZE, size);
+    localStorage.setItem(LS_DATE, new Date().toLocaleDateString('ru'));
+  } catch(e) {}
+}
+function loadSavedConf() {
+  try {
+    const text = localStorage.getItem(LS_CONF);
+    if (text && validateConf(text)) return {
+      text, name: localStorage.getItem(LS_NAME) || 'warp-base.conf',
+      size: localStorage.getItem(LS_SIZE) || '?',
+      date: localStorage.getItem(LS_DATE) || ''
+    };
+  } catch(e) {}
+  return null;
+}
+function clearSavedConf() {
+  try { [LS_CONF,LS_NAME,LS_SIZE,LS_DATE].forEach(k => localStorage.removeItem(k)); } catch(e) {}
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function markDone(n) {
+  const el = document.getElementById('s' + n);
+  if (el) { el.classList.remove('active'); el.classList.add('done'); }
+}
+function setStep(n) { markDone(n); }
+function log(msg, type='') {
+  const w = document.getElementById('logWrap');
+  w.classList.add('visible');
+  const d = document.createElement('div');
+  d.className = 'log-line ' + type;
+  d.textContent = '› ' + msg;
+  w.appendChild(d);
+  w.scrollTop = w.scrollHeight;
+}
+function setProgress(pct, text) {
+  document.getElementById('progressWrap').classList.add('visible');
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = text;
+}
+function showError(msg) {
+  document.getElementById('errorCard').classList.add('visible');
+  document.getElementById('errorText').textContent = msg;
+}
+function hideError() { document.getElementById('errorCard').classList.remove('visible'); }
+function toggleHelp() {
+  const p = document.getElementById('helpPanel');
+  const a = document.getElementById('helpArrow');
+  const v = p.style.display === 'block';
+  p.style.display = v ? 'none' : 'block';
+  if (a) a.style.transform = v ? '' : 'rotate(180deg)';
+}
+
+// ── Validation ────────────────────────────────────────────────────────────────
+function validateConf(t) { return t.includes('[Interface]') && t.includes('PrivateKey'); }
+
+// ── File input ────────────────────────────────────────────────────────────────
+function initFileUI() {
+  const dz = document.getElementById('dropZone');
+  const fi = document.getElementById('fileInput');
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+  fi.addEventListener('change', e => handleFile(e.target.files[0]));
+}
+function handleFile(file) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const text = e.target.result;
+    if (!validateConf(text)) { showError('Файл не похож на WireGuard конфиг. Нужны секции [Interface] и PrivateKey.'); return; }
+    hideError();
+    baseConfText = text;
+    saveConf(text, file.name, (file.size/1024).toFixed(1) + ' КБ');
+    showSavedBanner(file.name, (file.size/1024).toFixed(1) + ' КБ', new Date().toLocaleDateString('ru'));
+    document.getElementById('dropZoneWrap').style.display = 'none';
+    markDone(1);
+    loadSources();
+  };
+  r.readAsText(file);
+}
+function showSavedBanner(name, size, date) {
+  document.getElementById('savedName').textContent = '✓ ' + name;
+  document.getElementById('savedMeta').textContent = size + ' · сохранён ' + date;
+  const b = document.getElementById('savedBanner');
+  b.style.display = 'flex';
+}
+function clearSaved() {
+  clearSavedConf(); baseConfText = null;
+  document.getElementById('savedBanner').style.display = 'none';
+  document.getElementById('dropZoneWrap').style.display = 'block';
+  document.getElementById('sourcesList').innerHTML = '<div class="source-item"><div class="src-dot"></div><div class="src-url">Ожидание...</div></div>';
+  document.getElementById('btnGenerate').disabled = true;
+  document.getElementById('invertStatus').classList.remove('visible');
+  [1,2,3,4].forEach(i => { const el = document.getElementById('s'+i); if(el){el.classList.remove('done','active');} });
+}
+function changeSaved() {
+  document.getElementById('dropZoneWrap').style.display = 'block';
+  document.getElementById('dropZone').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initFileUI();
+  const saved = loadSavedConf();
+  if (saved) {
+    baseConfText = saved.text;
+    showSavedBanner(saved.name, saved.size, saved.date);
+    document.getElementById('dropZoneWrap').style.display = 'none';
+    markDone(1);
+    loadSources();
+  }
+});
+
+// ── Sources ───────────────────────────────────────────────────────────────────
+async function fetchText(url, timeout=8000) {
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (r.ok) return await r.text();
+  } catch(e) { clearTimeout(tid); }
+  // CORS proxy fallback
+  const ctrl2 = new AbortController();
+  const tid2 = setTimeout(() => ctrl2.abort(), timeout);
+  try {
+    const r2 = await fetch(CORS_PROXY + encodeURIComponent(url), { signal: ctrl2.signal });
+    clearTimeout(tid2);
+    if (r2.ok) return await r2.text();
+  } catch(e) { clearTimeout(tid2); }
+  throw new Error('Недоступен: ' + url);
+}
+
+async function loadSources() {
+  const list = document.getElementById('sourcesList');
+  list.innerHTML = '<div class="source-item loading"><div class="src-dot"></div><div class="src-url">Загружаем sources.txt...</div></div>';
+  try {
+    const text = await fetchText(SOURCES_URL, 6000);
+    sourcesUrls = text.split('\n').map(l=>l.trim()).filter(l=>l && !l.startsWith('#'));
+  } catch(e) {
+    list.innerHTML = '<div class="source-item error"><div class="src-dot"></div><div class="src-url">Не удалось загрузить sources.txt</div></div>';
+    showError('Не удалось загрузить список источников с GitHub. Проверьте интернет.');
+    return;
+  }
+  list.innerHTML = '';
+  sourcesUrls.forEach((url, i) => {
+    const short = url.replace('https://raw.githubusercontent.com/', 'gh/');
+    list.innerHTML += `<div class="source-item" id="src${i}"><div class="src-dot"></div><div class="src-url">${short}</div></div>`;
+  });
+  markDone(2);
+  document.getElementById('btnGenerate').disabled = false;
+}
+
+// ── CIDR inversion ─────────────────────────────────────────────────────────────
+// Convert IP string to 32-bit integer
+function ip2int(ip) {
+  return ip.split('.').reduce((acc, o) => (acc << 8) | parseInt(o), 0) >>> 0;
+}
+// Convert 32-bit integer to IP string
+function int2ip(n) {
+  return [(n>>>24)&255, (n>>>16)&255, (n>>>8)&255, n&255].join('.');
+}
+// Parse CIDR → {start, end} as unsigned 32-bit ints
+function parseCIDR(cidr) {
+  const [ip, bits] = cidr.split('/');
+  const prefix = parseInt(bits);
+  const mask   = prefix === 0 ? 0 : (~0 << (32 - prefix)) >>> 0;
+  const start  = (ip2int(ip) & mask) >>> 0;
+  const end    = (start | (~mask >>> 0)) >>> 0;
+  return { start, end, prefix };
+}
+// Invert a sorted list of CIDR ranges within 0.0.0.0–255.255.255.255
+// Returns array of CIDR strings covering the gaps
+function invertCIDRs(cidrList) {
+  // Parse and sort by start
+  const ranges = cidrList
+    .map(c => { try { return parseCIDR(c); } catch(e) { return null; } })
+    .filter(Boolean)
+    .sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+
+  // Merge overlapping ranges
+  const merged = [];
+  for (const r of ranges) {
+    if (merged.length === 0 || r.start > merged[merged.length-1].end + 1) {
+      merged.push({ start: r.start, end: r.end });
+    } else {
+      merged[merged.length-1].end = Math.max(merged[merged.length-1].end, r.end) >>> 0;
+    }
+  }
+
+  // Gaps between merged ranges → our result
+  const result = [];
+  let cursor = 0; // 0.0.0.0
+
+  for (const range of merged) {
+    if (cursor < range.start) {
+      rangeToCIDRs(cursor, range.start - 1, result);
+    }
+    cursor = (range.end + 1) >>> 0;
+    if (cursor === 0) break; // overflow past 255.255.255.255
+  }
+  // Tail: from last range end+1 to 255.255.255.255
+  if (cursor !== 0 && cursor <= 0xFFFFFFFF) {
+    rangeToCIDRs(cursor, 0xFFFFFFFF, result);
+  }
+
+  return result;
+}
+
+// Convert an integer range [start..end] into minimal CIDR blocks
+function rangeToCIDRs(start, end, out) {
+  let cur = start >>> 0;
+  const last = end >>> 0;
+  while (cur <= last) {
+    // Find the largest block starting at cur that fits within [cur..last]
+    let bits = 32;
+    while (bits > 0) {
+      const mask = (~0 << (32 - (bits - 1))) >>> 0;
+      const blockStart = (cur & mask) >>> 0;
+      const blockEnd   = (blockStart | (~mask >>> 0)) >>> 0;
+      if (blockStart === cur && blockEnd <= last) {
+        bits--;
+      } else {
+        break;
+      }
+    }
+    const blockEnd = (cur | ((~(~0 << (32-bits))) >>> 0)) >>> 0;
+    out.push(int2ip(cur) + '/' + bits);
+    cur = (blockEnd + 1) >>> 0;
+    if (cur === 0) break;
+  }
+}
+
+// ── Extract DNS /32 from conf ─────────────────────────────────────────────────
+function extractDnsV4(base) {
+  for (const line of base.split('\n')) {
+    const t = line.trim();
+    if (/^DNS\s*=/i.test(t)) {
+      return t.replace(/^DNS\s*=\s*/i, '').split(',')
+        .map(s => s.trim())
+        .filter(s => /^\d+\.\d+\.\d+\.\d+$/.test(s))
+        .map(s => s + '/32');
+    }
+  }
+  return [];
+}
+
+// ── Build conf ────────────────────────────────────────────────────────────────
+function buildConf(base, allowedIPs) {
+  const lines = base.split('\n');
+  const out   = [];
+  let peerSeen = false, peerDone = false;
+  const allowedLine = 'AllowedIPs = ' + allowedIPs.join(', ');
+
+  for (const line of lines) {
+    const t = line.trim();
+    if (t === '[Peer]') peerSeen = true;
+    if (peerSeen && (t.startsWith('AllowedIPs') || t.startsWith('PersistentKeepalive'))) continue;
+    if (peerSeen && !peerDone && t.startsWith('[') && t !== '[Peer]') {
+      out.push(allowedLine);
+      out.push('PersistentKeepalive = 25');
+      peerDone = true;
+    }
+    out.push(line);
+  }
+  if (peerSeen && !peerDone) {
+    out.push(allowedLine);
+    out.push('PersistentKeepalive = 25');
+  }
+  return peerSeen ? out.join('\n') : null;
+}
+
+// ── Generate ──────────────────────────────────────────────────────────────────
+document.getElementById('btnGenerate').addEventListener('click', generate);
+
+async function generate() {
+  hideError();
+  document.getElementById('btnGenerate').disabled = true;
+  document.getElementById('logWrap').innerHTML = '';
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('invertStatus').classList.remove('visible');
+
+  let ok = false;
+  try {
+    log('Начинаем генерацию WORLD конфига...', 'info');
+    setProgress(5, 'Скачиваем RU IP список...');
+
+    // Download RU list
+    let rawIps = null;
+    for (let i = 0; i < sourcesUrls.length; i++) {
+      const url  = sourcesUrls[i];
+      const item = document.getElementById('src' + i);
+      item.classList.add('loading');
+      log('Пробуем: ' + url.split('/').slice(-1)[0]);
+      setProgress(5 + i * 15, 'Источник ' + (i+1) + '/' + sourcesUrls.length + '...');
+      try {
+        const text = await fetchText(url, 10000);
+        if (text && text.length > 1000) {
+          rawIps = text;
+          item.classList.remove('loading'); item.classList.add('success');
+          log('✓ Скачан (' + Math.round(text.length/1024) + ' КБ)', 'ok');
+          break;
+        }
+      } catch(e) {
+        item.classList.remove('loading'); item.classList.add('error');
+        log('✗ Недоступен', 'err');
+      }
+    }
+
+    if (!rawIps) { showError('Не удалось скачать RU IP список. Проверьте интернет.'); return; }
+
+    setProgress(50, 'Парсим RU блоки...');
+    log('Парсим RU блоки...', 'info');
+    const ruBlocks = rawIps.split('\n').map(l=>l.trim()).filter(l=>/^\d+\.\d+\.\d+\.\d+\/\d+$/.test(l));
+    if (ruBlocks.length < 100) { showError('Список RU IP подозрительно мал. Возможно файл повреждён.'); return; }
+    log('RU блоков: ' + ruBlocks.length.toLocaleString(), 'ok');
+    document.getElementById('iRu').textContent = ruBlocks.length.toLocaleString();
+
+    setProgress(65, 'Инвертируем адресное пространство...');
+    log('Вычитаем RU из 0.0.0.0/0...', 'info');
+
+    // Inversion runs synchronously — yield to UI first
+    await new Promise(r => setTimeout(r, 30));
+    const worldBlocks = invertCIDRs(ruBlocks);
+    log('WORLD блоков: ' + worldBlocks.length.toLocaleString(), 'ok');
+    document.getElementById('iWorld').textContent = worldBlocks.length.toLocaleString();
+
+    setProgress(80, 'Добавляем DNS...');
+    const dnsIPs = extractDnsV4(baseConfText);
+    log('DNS /32: ' + (dnsIPs.length ? dnsIPs.join(', ') : 'не найдены'), dnsIPs.length ? 'ok' : 'err');
+    document.getElementById('iDns').textContent = dnsIPs.length;
+    document.getElementById('invertStatus').classList.add('visible');
+
+    // DNS first, then world (excluding any DNS addresses already in world to avoid dups)
+    const allAllowed = [...dnsIPs, ...worldBlocks];
+
+    setProgress(88, 'Генерируем конфиг...');
+    const conf = buildConf(baseConfText, allAllowed);
+    if (!conf) { showError('Не удалось сформировать конфиг. Проверьте секцию [Peer].'); return; }
+
+    setProgress(94, 'Упаковываем в архив...');
+    log('Формируем ZIP архив...', 'info');
+    const zip = new JSZip();
+    zip.file('warp-world.conf', conf);
+    const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+
+    setProgress(100, 'Готово!');
+    log('Архив готов — ' + Math.round(zipBlob.size/1024) + ' КБ', 'ok');
+
+    // Auto-download
+    const dlUrl = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = dlUrl; a.download = 'warp-world.zip';
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(dlUrl); a.remove(); }, 1000);
+
+    // Stats
+    document.getElementById('resultMeta').textContent =
+      'warp-world.zip · ' + Math.round(zipBlob.size/1024) + ' КБ · внутри: warp-world.conf';
+    document.getElementById('statsBlock').innerHTML =
+      '<div class="stat"><div class="stat-val">' + ruBlocks.length.toLocaleString() + '</div><div class="stat-key">RU блоков</div></div>' +
+      '<div class="stat"><div class="stat-val">' + worldBlocks.length.toLocaleString() + '</div><div class="stat-key">WORLD блоков</div></div>' +
+      '<div class="stat"><div class="stat-val">' + Math.round(conf.length/1024) + '</div><div class="stat-key">КБ конфига</div></div>';
+    document.getElementById('saveHint').textContent =
+      '📁 warp-world.zip сохранён в загрузки. Распакуйте и импортируйте warp-world.conf в WG Tunnel.';
+
+    // Флаги: Generate зажигаем после формирования конфига, Done — после скачивания
+    markDone(3);
+    // Показываем результат
+    document.getElementById('resultCard').classList.add('visible');
+    markDone(4);
+    log('✓ Файл отправлен на скачивание', 'ok');
+    ok = true;
+
+  } catch(err) {
+    console.error('generate() error:', err);
+    showError('Ошибка: ' + (err.message || String(err)));
+    log('Ошибка: ' + (err.message || String(err)), 'err');
+  } finally {
+    document.getElementById('btnGenerate').disabled = false;
+  }
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function reset() {
+  sourcesUrls = [];
+  document.getElementById('logWrap').innerHTML = '';
+  document.getElementById('logWrap').classList.remove('visible');
+  document.getElementById('progressWrap').classList.remove('visible');
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('errorCard').classList.remove('visible');
+  document.getElementById('invertStatus').classList.remove('visible');
+  document.getElementById('btnGenerate').disabled = true;
+  document.getElementById('sourcesList').innerHTML =
+    '<div class="source-item"><div class="src-dot"></div><div class="src-url">Ожидание...</div></div>';
+  const saved = loadSavedConf();
+  if (saved) {
+    baseConfText = saved.text;
+    document.getElementById('dropZoneWrap').style.display = 'none';
+    document.getElementById('savedBanner').style.display = 'flex';
+    markDone(1);
+    loadSources();
+  } else {
+    baseConfText = null;
+    document.getElementById('savedBanner').style.display = 'none';
+    document.getElementById('dropZoneWrap').style.display = 'block';
+    [1,2,3,4].forEach(i => { const el = document.getElementById('s'+i); if(el){el.classList.remove('done','active');} });
+  }
+}
+</script>
+</body>
+</html>
